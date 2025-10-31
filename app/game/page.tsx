@@ -20,6 +20,7 @@ function GameContent() {
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const holdingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Parse and validate settings from URL
   useEffect(() => {
@@ -149,6 +150,11 @@ function GameContent() {
     };
   }, []);
 
+  // Sync holdingTimer state to ref
+  useEffect(() => {
+    holdingTimerRef.current = holdingTimer;
+  }, [holdingTimer]);
+
   // Wake Lock management
   useEffect(() => {
     if (!settings) return;
@@ -170,6 +176,21 @@ function GameContent() {
       releaseWakeLock();
     };
   }, [settings]);
+
+  // Cleanup all resources when component unmounts (e.g., navigating away)
+  useEffect(() => {
+    return () => {
+      // Clear any active timers
+      if (holdingTimerRef.current) {
+        clearInterval(holdingTimerRef.current);
+      }
+
+      // Stop all vibrations
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(0);
+      }
+    };
+  }, []);
 
   const clearExistingTimer = () => {
     if (holdingTimer) {
