@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Phase, Settings, Statistics } from "../types";
 
-export default function Game() {
+function GameContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -351,5 +351,19 @@ export default function Game() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function Game() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen bg-gray-950 flex items-center justify-center">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      }
+    >
+      <GameContent />
+    </Suspense>
   );
 }
