@@ -268,11 +268,11 @@ function GameContent() {
         let vibrationInterval: number;
 
         if (remaining > 3) {
-          vibrationInterval = 240; // Slow vibration (5-3 seconds)
+          vibrationInterval = 500;
         } else if (remaining > 1) {
-          vibrationInterval = 120; // Medium vibration (3-1 seconds)
+          vibrationInterval = 250; // Medium vibration (3-1 seconds)
         } else {
-          vibrationInterval = 80; // Fast vibration (last second)
+          vibrationInterval = 125; // Fast vibration (last second)
         }
 
         if (now - lastVibrationTime >= vibrationInterval) {
