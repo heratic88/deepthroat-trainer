@@ -161,7 +161,7 @@ export default function Game() {
     // Fail instantly if max breaks reached
     if (
       settings.maximumBreaks !== undefined &&
-      newBreaks >= settings.maximumBreaks
+      newBreaks > settings.maximumBreaks
     ) {
       setStatistics((prev) => ({ ...prev, breaks: newBreaks }));
       gameFailed();
