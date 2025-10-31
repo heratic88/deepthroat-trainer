@@ -19,6 +19,7 @@ export default function Game() {
   const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // Parse and validate settings from URL
   useEffect(() => {
@@ -57,6 +58,29 @@ export default function Game() {
 
     setSettings(parsedSettings);
   }, [searchParams, router]);
+
+  const requestWakeLock = async () => {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+        console.log("Wake Lock acquired");
+      }
+    } catch (err) {
+      console.error("Failed to acquire wake lock:", err);
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        console.log("Wake Lock released");
+      } catch (err) {
+        console.error("Failed to release wake lock:", err);
+      }
+    }
+  };
 
   const ensureAudioContext = () => {
     if (
@@ -112,6 +136,28 @@ export default function Game() {
       }
     };
   }, []);
+
+  // Wake Lock management
+  useEffect(() => {
+    if (!settings) return;
+
+    // Request wake lock when game starts
+    requestWakeLock();
+
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && wakeLockRef.current === null) {
+        // Reacquire wake lock when page becomes visible again
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [settings]);
 
   const clearExistingTimer = () => {
     if (holdingTimer) {
