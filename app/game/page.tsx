@@ -124,6 +124,7 @@ export default function Game() {
     event: React.PointerEvent<HTMLButtonElement>
   ) => {
     if (!settings) return;
+    if (phase === "failed") return;
 
     (event.target as HTMLButtonElement).setPointerCapture(event.pointerId);
     ensureAudioContext();
@@ -146,6 +147,7 @@ export default function Game() {
 
   const onPointerUp = async (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!settings) return;
+    if (phase === "failed") return;
 
     (event.target as HTMLButtonElement).releasePointerCapture(event.pointerId);
     ensureAudioContext();
@@ -289,11 +291,12 @@ export default function Game() {
               : phase === "failed"
               ? "bg-linear-to-br from-red-600 to-red-800"
               : "bg-linear-to-br from-blue-600 to-indigo-700"
-          }`}
+          } ${phase === "failed" && "opacity-50 cursor-not-allowed"}`}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerCancel}
           onPointerLeave={onPointerLeave}
+          disabled={phase === "failed"}
         >
           {phase === "idle" && "Touch & Hold"}
           {phase === "holding" && "Keep Holding..."}
