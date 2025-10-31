@@ -2,6 +2,7 @@ export interface Settings {
   gracePeriodSeconds: number;
   maximumBreaks?: number;
   targetSeconds?: number;
+  hapticFeedback?: boolean;
 }
 
 export interface Statistics {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -10,6 +10,15 @@ export default function Home() {
   const [targetMinutes, setTargetMinutes] = useState<string>("");
   const [targetSeconds, setTargetSeconds] = useState<string>("");
   const [showInstructions, setShowInstructions] = useState(false);
+  const [hapticFeedback, setHapticFeedback] = useState<boolean>(true);
+  const [vibrationSupported, setVibrationSupported] = useState<boolean>(false);
+
+  // Check if vibration API is supported
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      setVibrationSupported(true);
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +47,11 @@ export default function Home() {
         const totalSeconds = mins * 60 + secs;
         params.set("targetSeconds", totalSeconds.toString());
       }
+    }
+
+    // Add haptic feedback setting
+    if (vibrationSupported) {
+      params.set("hapticFeedback", hapticFeedback.toString());
     }
 
     router.push(`/game?${params.toString()}`);
@@ -138,6 +152,37 @@ export default function Home() {
               Set a goal time to track progress percentage
             </p>
           </div>
+
+          {vibrationSupported && (
+            <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+              <div className="flex-1">
+                <label
+                  htmlFor="hapticFeedback"
+                  className="block text-sm font-medium text-gray-300"
+                >
+                  Haptic Feedback
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Vibrate on button interactions
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hapticFeedback}
+                onClick={() => setHapticFeedback(!hapticFeedback)}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                  hapticFeedback ? "bg-blue-600" : "bg-gray-700"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                    hapticFeedback ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"

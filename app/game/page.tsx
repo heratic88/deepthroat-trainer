@@ -26,6 +26,7 @@ function GameContent() {
     const gracePeriodSeconds = searchParams.get("gracePeriodSeconds");
     const maximumBreaks = searchParams.get("maximumBreaks");
     const targetSeconds = searchParams.get("targetSeconds");
+    const hapticFeedback = searchParams.get("hapticFeedback");
 
     if (!gracePeriodSeconds) {
       router.push("/");
@@ -40,6 +41,7 @@ function GameContent() {
 
     const parsedSettings: Settings = {
       gracePeriodSeconds: gracePeriod,
+      hapticFeedback: hapticFeedback === "true",
     };
 
     if (maximumBreaks) {
@@ -119,6 +121,16 @@ function GameContent() {
     oscillator.stop(now + duration);
   };
 
+  const vibrate = (pattern: number | number[]) => {
+    if (
+      settings?.hapticFeedback &&
+      typeof navigator !== "undefined" &&
+      "vibrate" in navigator
+    ) {
+      navigator.vibrate(pattern);
+    }
+  };
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && audioContextRef.current) {
@@ -180,6 +192,7 @@ function GameContent() {
     setGracePeriodRemaining(0);
     setPhase("holding");
     playTone(520, 0.1);
+    vibrate(50); // Short vibration on hold
 
     setHoldingTimer(
       setInterval(() => {
@@ -200,6 +213,7 @@ function GameContent() {
 
     setPhase("released");
     clearExistingTimer();
+    vibrate(50); // Short vibration on release
 
     // Synchronously calculate new breaks
     const newBreaks = statistics.breaks + 1;
@@ -221,10 +235,30 @@ function GameContent() {
     const gracePeriodMs = settings.gracePeriodSeconds * 1000;
     setGracePeriodRemaining(settings.gracePeriodSeconds);
 
+    let lastVibrationTime = 0;
     const graceTimer = setInterval(() => {
       const elapsed = performance.now() - start;
       const remaining = Math.max(0, (gracePeriodMs - elapsed) / 1000);
       setGracePeriodRemaining(remaining);
+
+      // Only vibrate in the last 5 seconds with increasing urgency
+      if (remaining <= 5 && remaining > 0) {
+        const now = performance.now();
+        let vibrationInterval: number;
+
+        if (remaining > 3) {
+          vibrationInterval = 240; // Slow vibration (5-3 seconds)
+        } else if (remaining > 1) {
+          vibrationInterval = 120; // Medium vibration (3-1 seconds)
+        } else {
+          vibrationInterval = 80; // Fast vibration (last second)
+        }
+
+        if (now - lastVibrationTime >= vibrationInterval) {
+          vibrate(30);
+          lastVibrationTime = now;
+        }
+      }
 
       if (remaining <= 0) {
         clearInterval(graceTimer);
