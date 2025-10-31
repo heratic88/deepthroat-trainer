@@ -1,6 +1,7 @@
 export interface Settings {
   gracePeriodSeconds: number;
   maximumBreaks?: number;
+  targetSeconds?: number;
 }
 
 export interface Statistics {

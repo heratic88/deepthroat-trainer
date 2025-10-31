@@ -7,6 +7,8 @@ export default function Home() {
   const router = useRouter();
   const [gracePeriodSeconds, setGracePeriodSeconds] = useState<string>("3");
   const [maximumBreaks, setMaximumBreaks] = useState<string>("");
+  const [targetMinutes, setTargetMinutes] = useState<string>("");
+  const [targetSeconds, setTargetSeconds] = useState<string>("");
   const [showInstructions, setShowInstructions] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -25,6 +27,16 @@ export default function Home() {
       const maxBreaks = parseInt(maximumBreaks, 10);
       if (!isNaN(maxBreaks) && maxBreaks > 0) {
         params.set("maximumBreaks", maxBreaks.toString());
+      }
+    }
+
+    // Handle target time
+    if (targetMinutes || targetSeconds) {
+      const mins = parseInt(targetMinutes || "0", 10);
+      const secs = parseInt(targetSeconds || "0", 10);
+      if (!isNaN(mins) && !isNaN(secs) && (mins > 0 || secs > 0)) {
+        const totalSeconds = mins * 60 + secs;
+        params.set("targetSeconds", totalSeconds.toString());
       }
     }
 
@@ -88,6 +100,42 @@ export default function Home() {
             />
             <p className="text-xs text-gray-500">
               Number of breaks allowed before game over
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Target Time (optional)
+            </label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <input
+                  type="number"
+                  id="targetMinutes"
+                  value={targetMinutes}
+                  onChange={(e) => setTargetMinutes(e.target.value)}
+                  step="1"
+                  min="0"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Minutes"
+                />
+              </div>
+              <div className="flex-1">
+                <input
+                  type="number"
+                  id="targetSeconds"
+                  value={targetSeconds}
+                  onChange={(e) => setTargetSeconds(e.target.value)}
+                  step="1"
+                  min="0"
+                  max="59"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Seconds"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Set a goal time to track progress percentage
             </p>
           </div>
 

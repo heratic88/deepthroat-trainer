@@ -24,6 +24,7 @@ export default function Game() {
   useEffect(() => {
     const gracePeriodSeconds = searchParams.get("gracePeriodSeconds");
     const maximumBreaks = searchParams.get("maximumBreaks");
+    const targetSeconds = searchParams.get("targetSeconds");
 
     if (!gracePeriodSeconds) {
       router.push("/");
@@ -44,6 +45,13 @@ export default function Game() {
       const maxBreaks = parseInt(maximumBreaks, 10);
       if (!isNaN(maxBreaks) && maxBreaks > 0) {
         parsedSettings.maximumBreaks = maxBreaks;
+      }
+    }
+
+    if (targetSeconds) {
+      const target = parseInt(targetSeconds, 10);
+      if (!isNaN(target) && target > 0) {
+        parsedSettings.targetSeconds = target;
       }
     }
 
@@ -211,12 +219,24 @@ export default function Game() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const goalProgress = settings.targetSeconds
+    ? Math.min(100, (statistics.elapsed / settings.targetSeconds) * 100)
+    : 0;
+
+  const goalReached = settings.targetSeconds
+    ? statistics.elapsed >= settings.targetSeconds
+    : false;
+
   return (
     <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
       {/* Header stats - fixed height */}
       <div className="p-6 space-y-3 shrink-0">
         <div className="text-center">
-          <div className="text-6xl font-bold text-white mb-2">
+          <div
+            className={`text-6xl font-bold mb-2 ${
+              goalReached ? "text-green-500" : "text-white"
+            }`}
+          >
             {formatTime(statistics.elapsed)}
           </div>
           <div className="text-gray-400 text-sm uppercase tracking-wider">
@@ -232,10 +252,14 @@ export default function Game() {
               <span className="text-gray-500">/{settings.maximumBreaks}</span>
             )}
           </div>
-          <div>
-            <span className="text-gray-500">Status:</span>{" "}
-            <span className="text-white font-medium capitalize">{phase}</span>
-          </div>
+          {settings.targetSeconds !== undefined && (
+            <div>
+              <span className="text-gray-500">Progress:</span>{" "}
+              <span className="text-white font-medium">
+                {goalProgress.toFixed(1)}%
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Grace period progress bar - fixed height container */}
