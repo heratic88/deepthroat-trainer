@@ -17,6 +17,7 @@ function GameContent() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [holdingTimer, setHoldingTimer] = useState<NodeJS.Timeout | null>(null);
   const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
+  const [goalCelebrated, setGoalCelebrated] = useState<boolean>(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -329,6 +330,23 @@ function GameContent() {
   const goalReached = settings.targetSeconds
     ? statistics.elapsed >= settings.targetSeconds
     : false;
+
+  // Celebrate when goal is reached for the first time
+  useEffect(() => {
+    if (goalReached && !goalCelebrated && settings) {
+      setGoalCelebrated(true);
+
+      // Play a distinctive ascending victory sound
+      ensureAudioContext();
+      playTone(523, 0.15); // C5
+      setTimeout(() => playTone(659, 0.15), 150); // E5
+      setTimeout(() => playTone(784, 0.15), 300); // G5
+      setTimeout(() => playTone(1047, 0.4), 450); // C6 (held longer)
+
+      // Victory vibration pattern: short-long-short-long
+      vibrate([100, 50, 200, 50, 100, 50, 300]);
+    }
+  }, [goalReached, goalCelebrated, settings]);
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
