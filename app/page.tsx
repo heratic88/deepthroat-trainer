@@ -1,239 +1,102 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Phase, Settings, Statistics } from "./types";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const [settings, setSettings] = useState<Settings>({
-    gracePeriodSeconds: 3,
-    // maximumBreaks: 3,
-  });
+  const router = useRouter();
+  const [gracePeriodSeconds, setGracePeriodSeconds] = useState<string>("3");
+  const [maximumBreaks, setMaximumBreaks] = useState<string>("");
 
-  const [statistics, setStatistics] = useState<Statistics>({
-    elapsed: 0,
-    breaks: 0,
-  });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [holdingTimer, setHoldingTimer] = useState<NodeJS.Timeout | null>(null);
-  const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
-
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  const ensureAudioContext = () => {
-    if (
-      !audioContextRef.current ||
-      audioContextRef.current.state === "closed"
-    ) {
-      audioContextRef.current = new AudioContext();
-    }
-    if (audioContextRef.current.state === "suspended") {
-      audioContextRef.current.resume();
-    }
-  };
-
-  const playTone = (pitch: number, duration: number) => {
-    if (
-      !audioContextRef.current ||
-      audioContextRef.current.state === "closed"
-    ) {
+    const gracePeriod = parseFloat(gracePeriodSeconds);
+    if (isNaN(gracePeriod) || gracePeriod <= 0) {
+      alert("Grace period must be a positive number");
       return;
     }
 
-    const ctx = audioContextRef.current;
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
+    const params = new URLSearchParams();
+    params.set("gracePeriodSeconds", gracePeriod.toString());
 
-    oscillator.type = "sine";
-    oscillator.frequency.value = pitch;
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    gainNode.gain.value = 0.3;
-
-    const now = ctx.currentTime;
-    oscillator.start(now);
-    oscillator.stop(now + duration);
-  };
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
+    if (maximumBreaks) {
+      const maxBreaks = parseInt(maximumBreaks, 10);
+      if (!isNaN(maxBreaks) && maxBreaks > 0) {
+        params.set("maximumBreaks", maxBreaks.toString());
       }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, []);
-
-  const clearExistingTimer = () => {
-    if (holdingTimer) {
-      clearInterval(holdingTimer);
-      setHoldingTimer(null);
-    }
-  };
-
-  const onPointerDown = async (
-    event: React.PointerEvent<HTMLButtonElement>
-  ) => {
-    (event.target as HTMLButtonElement).setPointerCapture(event.pointerId);
-    ensureAudioContext();
-
-    // If the user resumes holding during grace period, cancel that timer.
-    clearExistingTimer();
-    setGracePeriodRemaining(0);
-    setPhase("holding");
-    playTone(520, 0.1);
-
-    setHoldingTimer(
-      setInterval(() => {
-        setStatistics((prev) => ({
-          ...prev,
-          elapsed: prev.elapsed + 1,
-        }));
-      }, 1000)
-    );
-  };
-
-  const onPointerUp = async (event: React.PointerEvent<HTMLButtonElement>) => {
-    (event.target as HTMLButtonElement).releasePointerCapture(event.pointerId);
-    ensureAudioContext();
-
-    setPhase("released");
-    clearExistingTimer();
-
-    // Synchronously calculate new breaks
-    const newBreaks = statistics.breaks + 1;
-
-    // Fail instantly if max breaks reached
-    if (
-      settings.maximumBreaks !== undefined &&
-      newBreaks >= settings.maximumBreaks
-    ) {
-      setStatistics((prev) => ({ ...prev, breaks: newBreaks }));
-      gameFailed();
-      return; // do NOT start grace period
     }
 
-    playTone(440, 0.1);
-    setStatistics((prev) => ({ ...prev, breaks: newBreaks }));
-
-    const start = performance.now();
-    const gracePeriodMs = settings.gracePeriodSeconds * 1000;
-    setGracePeriodRemaining(settings.gracePeriodSeconds);
-
-    const graceTimer = setInterval(() => {
-      const elapsed = performance.now() - start;
-      const remaining = Math.max(0, (gracePeriodMs - elapsed) / 1000);
-      setGracePeriodRemaining(remaining);
-
-      if (remaining <= 0) {
-        clearInterval(graceTimer);
-        gameFailed();
-      }
-    }, 20);
-
-    setHoldingTimer(graceTimer);
-  };
-
-  const onPointerCancel = async () => {
-    setPhase("released");
-  };
-
-  const onPointerLeave = async () => {};
-
-  const gameFailed = () => {
-    setPhase("failed");
-    clearExistingTimer();
-    setGracePeriodRemaining(0);
-
-    playTone(380, 2);
-    playTone(392, 2);
-  };
-
-  const graceProgress =
-    (gracePeriodRemaining / settings.gracePeriodSeconds) * 100;
-
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    router.push(`/game?${params.toString()}`);
   };
 
   return (
-    <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
-      {/* Header stats - fixed height */}
-      <div className="p-6 space-y-3 shrink-0">
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
+      <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="text-6xl font-bold text-white mb-2">
-            {formatTime(statistics.elapsed)}
-          </div>
-          <div className="text-gray-400 text-sm uppercase tracking-wider">
-            Time Elapsed
-          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Deepthroat Trainer
+          </h1>
+          <p className="text-gray-400">Configure your training settings</p>
         </div>
 
-        <div className="flex justify-between text-gray-400 text-xs">
-          <div>
-            <span className="text-gray-500">Breaks:</span>{" "}
-            <span className="text-white font-medium">{statistics.breaks}</span>
-            {settings.maximumBreaks !== undefined && (
-              <span className="text-gray-500">/{settings.maximumBreaks}</span>
-            )}
-          </div>
-          <div>
-            <span className="text-gray-500">Status:</span>{" "}
-            <span className="text-white font-medium capitalize">{phase}</span>
-          </div>
-        </div>
-
-        {/* Grace period progress bar - fixed height container */}
-        <div className="h-16">
-          {phase === "released" && gracePeriodRemaining > 0 && (
-            <div className="space-y-2">
-              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-linear-to-r from-yellow-500 to-red-500 transition-all duration-75 ease-linear"
-                  style={{ width: `${graceProgress}%` }}
-                />
-              </div>
-              <div className="text-center text-yellow-400 text-sm font-medium">
-                Resume in {gracePeriodRemaining.toFixed(1)}s
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main button - fills all remaining space */}
-      <div className="flex-1 p-6 pt-0">
-        <button
-          className={`w-full h-full rounded-3xl text-white text-2xl font-bold shadow-2xl transition-colors touch-none select-none ${
-            phase === "holding"
-              ? "bg-linear-to-br from-green-600 to-emerald-700"
-              : phase === "failed"
-              ? "bg-linear-to-br from-red-600 to-red-800"
-              : "bg-linear-to-br from-blue-600 to-indigo-700"
-          }`}
-          onPointerDown={onPointerDown}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerCancel}
-          onPointerLeave={onPointerLeave}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-gray-900 rounded-2xl p-8 space-y-6 shadow-2xl"
         >
-          {phase === "idle" && "Touch & Hold"}
-          {phase === "holding" && "Keep Holding..."}
-          {phase === "released" && "Touch Again!"}
-          {phase === "failed" && "Game Over"}
-        </button>
+          <div className="space-y-2">
+            <label
+              htmlFor="gracePeriodSeconds"
+              className="block text-sm font-medium text-gray-300"
+            >
+              Grace Period (seconds)
+              <span className="text-red-400 ml-1">*</span>
+            </label>
+            <input
+              type="number"
+              id="gracePeriodSeconds"
+              value={gracePeriodSeconds}
+              onChange={(e) => setGracePeriodSeconds(e.target.value)}
+              step="0.1"
+              min="0.1"
+              required
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter grace period in seconds"
+            />
+            <p className="text-xs text-gray-500">
+              Time allowed to resume holding after releasing
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="maximumBreaks"
+              className="block text-sm font-medium text-gray-300"
+            >
+              Maximum Breaks (optional)
+            </label>
+            <input
+              type="number"
+              id="maximumBreaks"
+              value={maximumBreaks}
+              onChange={(e) => setMaximumBreaks(e.target.value)}
+              step="1"
+              min="1"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Leave empty for unlimited"
+            />
+            <p className="text-xs text-gray-500">
+              Number of breaks allowed before game over
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            Start Training
+          </button>
+        </form>
       </div>
     </div>
   );
