@@ -193,6 +193,27 @@ function GameContent() {
     };
   }, []);
 
+  // Celebrate when goal is reached for the first time
+  const goalReached = settings?.targetSeconds
+    ? statistics.elapsed >= settings.targetSeconds
+    : false;
+
+  useEffect(() => {
+    if (goalReached && !goalCelebrated && settings) {
+      setGoalCelebrated(true);
+
+      // Play a distinctive ascending victory sound
+      ensureAudioContext();
+      playTone(523, 0.15); // C5
+      setTimeout(() => playTone(659, 0.15), 150); // E5
+      setTimeout(() => playTone(784, 0.15), 300); // G5
+      setTimeout(() => playTone(1047, 0.4), 450); // C6 (held longer)
+
+      // Victory vibration pattern: short-long-short-long
+      vibrate([100, 50, 200, 50, 100, 50, 300]);
+    }
+  }, [goalReached, goalCelebrated, settings]);
+
   const clearExistingTimer = () => {
     if (holdingTimer) {
       clearInterval(holdingTimer);
@@ -326,27 +347,6 @@ function GameContent() {
   const goalProgress = settings.targetSeconds
     ? Math.min(100, (statistics.elapsed / settings.targetSeconds) * 100)
     : 0;
-
-  const goalReached = settings.targetSeconds
-    ? statistics.elapsed >= settings.targetSeconds
-    : false;
-
-  // Celebrate when goal is reached for the first time
-  useEffect(() => {
-    if (goalReached && !goalCelebrated && settings) {
-      setGoalCelebrated(true);
-
-      // Play a distinctive ascending victory sound
-      ensureAudioContext();
-      playTone(523, 0.15); // C5
-      setTimeout(() => playTone(659, 0.15), 150); // E5
-      setTimeout(() => playTone(784, 0.15), 300); // G5
-      setTimeout(() => playTone(1047, 0.4), 450); // C6 (held longer)
-
-      // Victory vibration pattern: short-long-short-long
-      vibrate([100, 50, 200, 50, 100, 50, 300]);
-    }
-  }, [goalReached, goalCelebrated, settings]);
 
   return (
     <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
