@@ -18,6 +18,7 @@ function GameContent() {
   const [holdingTimer, setHoldingTimer] = useState<NodeJS.Timeout | null>(null);
   const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
   const [goalCelebrated, setGoalCelebrated] = useState<boolean>(false);
+  const [timerVisible, setTimerVisible] = useState<boolean>(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -30,6 +31,7 @@ function GameContent() {
     const targetSeconds = searchParams.get("targetSeconds");
     const hapticFeedback = searchParams.get("hapticFeedback");
     const soundEnabled = searchParams.get("soundEnabled");
+    const showTimer = searchParams.get("showTimer");
 
     if (!gracePeriodSeconds) {
       router.push("/");
@@ -46,6 +48,7 @@ function GameContent() {
       gracePeriodSeconds: gracePeriod,
       hapticFeedback: hapticFeedback !== "false",
       soundEnabled: soundEnabled !== "false",
+      showTimer: (showTimer as "show" | "show-after-goal" | "hide") || "show",
     };
 
     if (maximumBreaks) {
@@ -206,6 +209,11 @@ function GameContent() {
     if (goalReached && !goalCelebrated && settings) {
       setGoalCelebrated(true);
 
+      // Make timer visible if in "show-after-goal" mode
+      if (settings.showTimer === "show-after-goal") {
+        setTimerVisible(true);
+      }
+
       // Play a distinctive ascending victory sound
       ensureAudioContext();
       playTone(523, 0.15); // C5
@@ -352,39 +360,49 @@ function GameContent() {
     ? Math.min(100, (statistics.elapsed / settings.targetSeconds) * 100)
     : 0;
 
+  // Determine if timer should be shown
+  const shouldShowTimer =
+    settings.showTimer === "show" ||
+    (settings.showTimer === "show-after-goal" && timerVisible) ||
+    phase === "failed";
+
   return (
     <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
       {/* Header stats - fixed height */}
       <div className="p-6 space-y-3 shrink-0">
-        <div className="text-center">
-          <div
-            className={`text-6xl font-bold mb-2 ${
-              goalReached ? "text-green-500" : "text-white"
-            }`}
-          >
-            {formatTime(statistics.elapsed)}
+        <div className={shouldShowTimer ? "" : "invisible"}>
+          <div className="text-center">
+            <div
+              className={`text-6xl font-bold mb-2 ${
+                goalReached ? "text-green-500" : "text-white"
+              }`}
+            >
+              {formatTime(statistics.elapsed)}
+            </div>
+            <div className="text-gray-400 text-sm uppercase tracking-wider">
+              Time Elapsed
+            </div>
           </div>
-          <div className="text-gray-400 text-sm uppercase tracking-wider">
-            Time Elapsed
-          </div>
-        </div>
 
-        <div className="flex justify-between text-gray-400 text-xs">
-          <div>
-            <span className="text-gray-500">Breaks:</span>{" "}
-            <span className="text-white font-medium">{statistics.breaks}</span>
-            {settings.maximumBreaks !== undefined && (
-              <span className="text-gray-500">/{settings.maximumBreaks}</span>
+          <div className="flex justify-between text-gray-400 text-xs mt-3">
+            <div>
+              <span className="text-gray-500">Breaks:</span>{" "}
+              <span className="text-white font-medium">
+                {statistics.breaks}
+              </span>
+              {settings.maximumBreaks !== undefined && (
+                <span className="text-gray-500">/{settings.maximumBreaks}</span>
+              )}
+            </div>
+            {settings.targetSeconds !== undefined && (
+              <div>
+                <span className="text-gray-500">Progress:</span>{" "}
+                <span className="text-white font-medium">
+                  {goalProgress.toFixed(1)}%
+                </span>
+              </div>
             )}
           </div>
-          {settings.targetSeconds !== undefined && (
-            <div>
-              <span className="text-gray-500">Progress:</span>{" "}
-              <span className="text-white font-medium">
-                {goalProgress.toFixed(1)}%
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Grace period progress bar - fixed height container */}
@@ -421,10 +439,10 @@ function GameContent() {
           onPointerLeave={onPointerLeave}
           disabled={phase === "failed"}
         >
-          {phase === "idle" && "Touch & Hold"}
-          {phase === "holding" && "Keep Holding..."}
-          {phase === "released" && "Touch Again!"}
-          {phase === "failed" && "Game Over"}
+          {phase === "idle" && "Fill your throat, then touch & hold"}
+          {phase === "holding" && "Hold it…"}
+          {phase === "released" && "Suck that cock"}
+          {phase === "failed" && "Game Over!"}
         </button>
       </div>
     </div>

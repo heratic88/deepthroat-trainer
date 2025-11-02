@@ -4,6 +4,7 @@ export interface Settings {
   targetSeconds?: number;
   hapticFeedback?: boolean;
   soundEnabled?: boolean;
+  showTimer?: "show" | "show-after-goal" | "hide";
 }
 
 export interface Statistics {

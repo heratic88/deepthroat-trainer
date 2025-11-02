@@ -10,9 +10,13 @@ export default function Home() {
   const [targetMinutes, setTargetMinutes] = useState<string>("");
   const [targetSeconds, setTargetSeconds] = useState<string>("");
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [hapticFeedback, setHapticFeedback] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [vibrationSupported, setVibrationSupported] = useState<boolean>(false);
+  const [showTimer, setShowTimer] = useState<
+    "show" | "show-after-goal" | "hide"
+  >("show");
 
   // Check if vibration API is supported
   useEffect(() => {
@@ -20,6 +24,13 @@ export default function Home() {
       setVibrationSupported(true);
     }
   }, []);
+
+  // Auto-switch from "show-after-goal" to "show" if target time is cleared
+  useEffect(() => {
+    if (showTimer === "show-after-goal" && !targetMinutes && !targetSeconds) {
+      setShowTimer("show");
+    }
+  }, [targetMinutes, targetSeconds, showTimer]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +66,8 @@ export default function Home() {
     }
     // Add sound setting
     params.set("soundEnabled", soundEnabled.toString());
+    // Add show timer setting
+    params.set("showTimer", showTimer);
 
     router.push(`/game?${params.toString()}`);
   };
@@ -66,7 +79,7 @@ export default function Home() {
           <h1 className="text-4xl font-bold text-white mb-2">
             Deepthroat Trainer
           </h1>
-          <p className="text-gray-400">Configure your training settings</p>
+          <p className="text-gray-400">How long can your throat be filled?</p>
         </div>
 
         <form
@@ -93,7 +106,8 @@ export default function Home() {
               placeholder="Enter grace period in seconds"
             />
             <p className="text-xs text-gray-500">
-              Time allowed to resume holding after releasing
+              If you have to come up for air, this is how long you have to
+              resume, or it's game over.
             </p>
           </div>
 
@@ -129,90 +143,211 @@ export default function Home() {
               </div>
             </div>
             <p className="text-xs text-gray-500">
-              Set a goal time to track progress percentage
+              If you have a specific goal time, set it here. Don't worry if you
+              fail, you can always start over!
             </p>
           </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="maximumBreaks"
-              className="block text-sm font-medium text-gray-300"
-            >
-              Maximum Breaks (optional)
-            </label>
-            <input
-              type="number"
-              id="maximumBreaks"
-              value={maximumBreaks}
-              onChange={(e) => setMaximumBreaks(e.target.value)}
-              step="1"
-              min="1"
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Leave empty for unlimited"
-            />
-            <p className="text-xs text-gray-500">
-              Number of breaks allowed before game over
-            </p>
-          </div>
-
-          {vibrationSupported && (
-            <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
-              <div className="flex-1">
-                <label
-                  htmlFor="hapticFeedback"
-                  className="block text-sm font-medium text-gray-300"
-                >
-                  Haptic Feedback
-                </label>
-                <p className="text-xs text-gray-500 mt-1">
-                  Vibrate on button interactions
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={hapticFeedback}
-                onClick={() => setHapticFeedback(!hapticFeedback)}
-                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
-                  hapticFeedback ? "bg-blue-600" : "bg-gray-700"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                    hapticFeedback ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
-            <div className="flex-1">
-              <label
-                htmlFor="soundEnabled"
-                className="block text-sm font-medium text-gray-300"
-              >
-                Sound
-              </label>
-              <p className="text-xs text-gray-500 mt-1">
-                Enable or disable sound effects
-              </p>
-            </div>
+          {/* Advanced Settings Dropdown */}
+          <div className="border border-gray-700 rounded-lg overflow-hidden">
             <button
               type="button"
-              role="switch"
-              aria-checked={soundEnabled}
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
-                soundEnabled ? "bg-blue-600" : "bg-gray-700"
-              }`}
+              onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+              className="w-full flex items-center justify-between p-4 bg-gray-800 hover:bg-gray-750 transition-colors"
             >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                  soundEnabled ? "translate-x-6" : "translate-x-1"
+              <span className="text-sm font-medium text-gray-300">
+                Advanced Settings
+              </span>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${
+                  showAdvancedSettings ? "rotate-180" : ""
                 }`}
-              />
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
             </button>
+
+            {showAdvancedSettings && (
+              <div className="p-4 space-y-4 bg-gray-850">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="maximumBreaks"
+                    className="block text-sm font-medium text-gray-300"
+                  >
+                    Maximum Breaks (optional)
+                  </label>
+                  <input
+                    type="number"
+                    id="maximumBreaks"
+                    value={maximumBreaks}
+                    onChange={(e) => setMaximumBreaks(e.target.value)}
+                    step="1"
+                    min="1"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Leave empty for unlimited"
+                  />
+                  <p className="text-xs text-gray-500">
+                    If you have to come up for air this many times, it's game
+                    over. Set to 0 for instafail.
+                  </p>
+                </div>
+
+                {vibrationSupported && (
+                  <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex-1">
+                      <label
+                        htmlFor="hapticFeedback"
+                        className="block text-sm font-medium text-gray-300"
+                      >
+                        Haptic Feedback
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enable vibrations.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={hapticFeedback}
+                      onClick={() => setHapticFeedback(!hapticFeedback)}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                        hapticFeedback ? "bg-blue-600" : "bg-gray-700"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                          hapticFeedback ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="soundEnabled"
+                      className="block text-sm font-medium text-gray-300"
+                    >
+                      Sound
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enable audio cues.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={soundEnabled}
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                      soundEnabled ? "bg-blue-600" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                        soundEnabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="space-y-1 p-4 bg-gray-800 rounded-lg border border-gray-700">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Timer Visibility
+                  </label>
+                  <p className="text-xs text-gray-500">
+                    Show or hide the timer.
+                  </p>
+                  <div className="space-y-2 mt-3">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="showTimer"
+                        value="show"
+                        checked={showTimer === "show"}
+                        onChange={(e) =>
+                          setShowTimer(
+                            e.target.value as
+                              | "show"
+                              | "show-after-goal"
+                              | "hide"
+                          )
+                        }
+                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className="ml-3 text-sm text-gray-300">
+                        Show
+                        <span className="block text-xs text-gray-500 mt-0.5">
+                          Timer is always visible
+                        </span>
+                      </span>
+                    </label>
+                    <label
+                      className={`flex items-center ${
+                        !targetMinutes && !targetSeconds
+                          ? "opacity-50 cursor-not-allowed"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="showTimer"
+                        value="show-after-goal"
+                        checked={showTimer === "show-after-goal"}
+                        onChange={(e) =>
+                          setShowTimer(
+                            e.target.value as
+                              | "show"
+                              | "show-after-goal"
+                              | "hide"
+                          )
+                        }
+                        disabled={!targetMinutes && !targetSeconds}
+                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500 focus:ring-2 disabled:opacity-50"
+                      />
+                      <span className="ml-3 text-sm text-gray-300">
+                        Show After Goal
+                        <span className="block text-xs text-gray-500 mt-0.5">
+                          Timer is hidden until the goal time is reached
+                        </span>
+                      </span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="showTimer"
+                        value="hide"
+                        checked={showTimer === "hide"}
+                        onChange={(e) =>
+                          setShowTimer(
+                            e.target.value as
+                              | "show"
+                              | "show-after-goal"
+                              | "hide"
+                          )
+                        }
+                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className="ml-3 text-sm text-gray-300">
+                        Hide
+                        <span className="block text-xs text-gray-500 mt-0.5">
+                          Timer is always hidden
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <button
