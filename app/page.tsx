@@ -11,6 +11,7 @@ export default function Home() {
   const [targetSeconds, setTargetSeconds] = useState<string>("");
   const [showInstructions, setShowInstructions] = useState(false);
   const [hapticFeedback, setHapticFeedback] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [vibrationSupported, setVibrationSupported] = useState<boolean>(false);
 
   // Check if vibration API is supported
@@ -48,11 +49,12 @@ export default function Home() {
         params.set("targetSeconds", totalSeconds.toString());
       }
     }
-
     // Add haptic feedback setting
     if (vibrationSupported) {
       params.set("hapticFeedback", hapticFeedback.toString());
     }
+    // Add sound setting
+    params.set("soundEnabled", soundEnabled.toString());
 
     router.push(`/game?${params.toString()}`);
   };
@@ -96,28 +98,6 @@ export default function Home() {
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="maximumBreaks"
-              className="block text-sm font-medium text-gray-300"
-            >
-              Maximum Breaks (optional)
-            </label>
-            <input
-              type="number"
-              id="maximumBreaks"
-              value={maximumBreaks}
-              onChange={(e) => setMaximumBreaks(e.target.value)}
-              step="1"
-              min="1"
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Leave empty for unlimited"
-            />
-            <p className="text-xs text-gray-500">
-              Number of breaks allowed before game over
-            </p>
-          </div>
-
-          <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-300">
               Target Time (optional)
             </label>
@@ -153,6 +133,28 @@ export default function Home() {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <label
+              htmlFor="maximumBreaks"
+              className="block text-sm font-medium text-gray-300"
+            >
+              Maximum Breaks (optional)
+            </label>
+            <input
+              type="number"
+              id="maximumBreaks"
+              value={maximumBreaks}
+              onChange={(e) => setMaximumBreaks(e.target.value)}
+              step="1"
+              min="1"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Leave empty for unlimited"
+            />
+            <p className="text-xs text-gray-500">
+              Number of breaks allowed before game over
+            </p>
+          </div>
+
           {vibrationSupported && (
             <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
               <div className="flex-1">
@@ -184,9 +186,38 @@ export default function Home() {
             </div>
           )}
 
+          <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+            <div className="flex-1">
+              <label
+                htmlFor="soundEnabled"
+                className="block text-sm font-medium text-gray-300"
+              >
+                Sound
+              </label>
+              <p className="text-xs text-gray-500 mt-1">
+                Enable or disable sound effects
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={soundEnabled}
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                soundEnabled ? "bg-blue-600" : "bg-gray-700"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  soundEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full bg-linear-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Start Training
           </button>

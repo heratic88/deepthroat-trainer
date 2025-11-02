@@ -3,6 +3,7 @@ export interface Settings {
   maximumBreaks?: number;
   targetSeconds?: number;
   hapticFeedback?: boolean;
+  soundEnabled?: boolean;
 }
 
 export interface Statistics {

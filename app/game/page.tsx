@@ -29,6 +29,7 @@ function GameContent() {
     const maximumBreaks = searchParams.get("maximumBreaks");
     const targetSeconds = searchParams.get("targetSeconds");
     const hapticFeedback = searchParams.get("hapticFeedback");
+    const soundEnabled = searchParams.get("soundEnabled");
 
     if (!gracePeriodSeconds) {
       router.push("/");
@@ -43,7 +44,8 @@ function GameContent() {
 
     const parsedSettings: Settings = {
       gracePeriodSeconds: gracePeriod,
-      hapticFeedback: hapticFeedback === "true",
+      hapticFeedback: hapticFeedback !== "false",
+      soundEnabled: soundEnabled !== "false",
     };
 
     if (maximumBreaks) {
@@ -99,6 +101,8 @@ function GameContent() {
   };
 
   const playTone = (pitch: number, duration: number) => {
+    if (settings?.soundEnabled === false) return;
+
     if (
       !audioContextRef.current ||
       audioContextRef.current.state === "closed"
