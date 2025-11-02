@@ -264,7 +264,23 @@ export default function Home() {
               </button>
             </div>
             <div className="text-gray-300 space-y-4">
-              <p>Instructions will be added here.</p>
+              <p>
+                Get accustomed to having your throat filled. Build your
+                tolerance by having your throat filled for longer periods of
+                time.
+              </p>
+
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Deepthroat to the desired depth</li>
+                <li>Hold the button down</li>
+                <li>Let go of the button if you need to come up for air</li>
+                <li>Fill your throat again before the time runs out</li>
+              </ol>
+
+              <p>
+                <strong>Optional:</strong> Set a target time if you have a
+                specific goal, otherwise go for as long as you can.
+              </p>
             </div>
             <div className="mt-6">
               <button
