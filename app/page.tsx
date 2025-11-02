@@ -79,7 +79,7 @@ export default function Home() {
           <h1 className="text-4xl font-bold text-white mb-2">
             Deepthroat Trainer
           </h1>
-          <p className="text-gray-400">How long can your throat be filled?</p>
+          <p className="text-gray-400">How long can you hold it?</p>
         </div>
 
         <form
@@ -407,7 +407,7 @@ export default function Home() {
 
               <ol className="list-decimal list-inside space-y-1">
                 <li>Deepthroat to the desired depth</li>
-                <li>Hold the button down</li>
+                <li>Touch and hold the button</li>
                 <li>Let go of the button if you need to come up for air</li>
                 <li>Fill your throat again before the time runs out</li>
               </ol>
