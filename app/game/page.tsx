@@ -12,6 +12,8 @@ function GameContent() {
   const [statistics, setStatistics] = useState<Statistics>({
     elapsed: 0,
     breaks: 0,
+    lastHold: 0,
+    longestHold: 0,
   });
 
   const [phase, setPhase] = useState<Phase>("idle");
@@ -19,10 +21,13 @@ function GameContent() {
   const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
   const [goalCelebrated, setGoalCelebrated] = useState<boolean>(false);
   const [timerVisible, setTimerVisible] = useState<boolean>(false);
+  const [currentHoldStart, setCurrentHoldStart] = useState<number | null>(null);
+  const [currentHoldSeconds, setCurrentHoldSeconds] = useState<number>(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const holdingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentHoldStartRef = useRef<number | null>(null);
 
   // Parse and validate settings from URL
   useEffect(() => {
@@ -32,6 +37,7 @@ function GameContent() {
     const hapticFeedback = searchParams.get("hapticFeedback");
     const soundEnabled = searchParams.get("soundEnabled");
     const showTimer = searchParams.get("showTimer");
+    const mode = searchParams.get("mode");
 
     if (!gracePeriodSeconds) {
       router.push("/");
@@ -49,6 +55,7 @@ function GameContent() {
       hapticFeedback: hapticFeedback !== "false",
       soundEnabled: soundEnabled !== "false",
       showTimer: (showTimer as "show" | "show-after-goal" | "hide") || "show",
+      mode: (mode as "classic" | "endless") || "classic",
     };
 
     if (maximumBreaks) {
@@ -163,6 +170,20 @@ function GameContent() {
     holdingTimerRef.current = holdingTimer;
   }, [holdingTimer]);
 
+  // Sync currentHoldStart state to ref
+  useEffect(() => {
+    currentHoldStartRef.current = currentHoldStart;
+  }, [currentHoldStart]);
+
+  const finishHold = (durationSeconds: number) => {
+    setStatistics((prev) => ({
+      ...prev,
+      elapsed: prev.elapsed + Math.floor(durationSeconds),
+      lastHold: durationSeconds,
+      longestHold: Math.max(prev.longestHold, durationSeconds),
+    }));
+  };
+
   // Wake Lock and fullscreen management
   useEffect(() => {
     if (!settings) return;
@@ -254,14 +275,27 @@ function GameContent() {
     playTone(520, 0.1);
     vibrate(50); // Short vibration on hold
 
-    setHoldingTimer(
-      setInterval(() => {
-        setStatistics((prev) => ({
-          ...prev,
-          elapsed: prev.elapsed + 1,
-        }));
-      }, 1000)
-    );
+    const holdStart = performance.now();
+    setCurrentHoldStart(holdStart);
+    currentHoldStartRef.current = holdStart;
+    setCurrentHoldSeconds(0);
+
+    if (settings.mode === "endless") {
+      setHoldingTimer(
+        setInterval(() => {
+          setCurrentHoldSeconds((s) => s + 1);
+        }, 1000)
+      );
+    } else {
+      setHoldingTimer(
+        setInterval(() => {
+          setStatistics((prev) => ({
+            ...prev,
+            elapsed: prev.elapsed + 1,
+          }));
+        }, 1000)
+      );
+    }
   };
 
   const onPointerUp = async (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -275,11 +309,20 @@ function GameContent() {
     clearExistingTimer();
     vibrate(50); // Short vibration on release
 
+    // Commit current hold duration in endless mode
+    if (settings.mode === "endless" && currentHoldStartRef.current !== null) {
+      const holdDuration = (performance.now() - currentHoldStartRef.current) / 1000;
+      finishHold(holdDuration);
+      setCurrentHoldStart(null);
+      currentHoldStartRef.current = null;
+    }
+
     // Synchronously calculate new breaks
     const newBreaks = statistics.breaks + 1;
 
-    // Fail instantly if max breaks reached
+    // Fail instantly if max breaks reached (classic mode only)
     if (
+      settings.mode !== "endless" &&
       settings.maximumBreaks !== undefined &&
       newBreaks > settings.maximumBreaks
     ) {
@@ -322,7 +365,12 @@ function GameContent() {
 
       if (remaining <= 0) {
         clearInterval(graceTimer);
-        gameFailed();
+        if (settings.mode === "endless") {
+          setPhase("idle");
+          setGracePeriodRemaining(0);
+        } else {
+          gameFailed();
+        }
       }
     }, 20);
 
@@ -375,40 +423,75 @@ function GameContent() {
     <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
       {/* Header stats - fixed height */}
       <div className="p-6 space-y-3 shrink-0">
-        <div className={shouldShowTimer ? "" : "invisible"}>
-          <div className="text-center">
-            <div
-              className={`text-6xl font-bold mb-2 ${
-                goalReached ? "text-green-500" : "text-white"
-              }`}
-            >
-              {formatTime(statistics.elapsed)}
-            </div>
-            <div className="text-gray-400 text-sm uppercase tracking-wider">
-              Time Elapsed
-            </div>
-          </div>
-
-          <div className="flex justify-between text-gray-400 text-xs mt-3">
-            <div>
-              <span className="text-gray-500">Breaks:</span>{" "}
-              <span className="text-white font-medium">
-                {statistics.breaks}
-              </span>
-              {settings.maximumBreaks !== undefined && (
-                <span className="text-gray-500">/{settings.maximumBreaks}</span>
-              )}
-            </div>
-            {settings.targetSeconds !== undefined && (
-              <div>
-                <span className="text-gray-500">Progress:</span>{" "}
-                <span className="text-white font-medium">
-                  {goalProgress.toFixed(1)}%
-                </span>
+        {settings.mode === "endless" ? (
+          <>
+            {/* Live hold timer while holding */}
+            {phase === "holding" && (
+              <div className="text-center">
+                <div className="text-6xl font-bold mb-1 text-green-400">
+                  {formatTime(currentHoldSeconds)}
+                </div>
+                <div className="text-gray-400 text-sm uppercase tracking-wider">
+                  Current Hold
+                </div>
               </div>
             )}
+
+            {/* Session stats tiles */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Last", value: formatTime(Math.floor(statistics.lastHold)) },
+                { label: "Best", value: formatTime(Math.floor(statistics.longestHold)) },
+                { label: "Total", value: formatTime(statistics.elapsed) },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="bg-gray-900 rounded-xl p-3 text-center"
+                >
+                  <div className="text-white font-bold text-xl">{value}</div>
+                  <div className="text-gray-500 text-xs uppercase tracking-wider mt-0.5">
+                    {label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className={shouldShowTimer ? "" : "invisible"}>
+            <div className="text-center">
+              <div
+                className={`text-6xl font-bold mb-2 ${
+                  goalReached ? "text-green-500" : "text-white"
+                }`}
+              >
+                {formatTime(statistics.elapsed)}
+              </div>
+              <div className="text-gray-400 text-sm uppercase tracking-wider">
+                Time Elapsed
+              </div>
+            </div>
+
+            <div className="flex justify-between text-gray-400 text-xs mt-3">
+              <div>
+                <span className="text-gray-500">Breaks:</span>{" "}
+                <span className="text-white font-medium">
+                  {statistics.breaks}
+                </span>
+                {settings.maximumBreaks !== undefined && (
+                  <span className="text-gray-500">/{settings.maximumBreaks}</span>
+                )}
+              </div>
+              {settings.targetSeconds !== undefined && (
+                <div>
+                  <span className="text-gray-500">Progress:</span>{" "}
+                  <span className="text-white font-medium">
+                    {goalProgress.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Grace period progress bar - fixed height container */}
         <div className="h-16">

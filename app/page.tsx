@@ -17,6 +17,7 @@ export default function Home() {
   const [showTimer, setShowTimer] = useState<
     "show" | "show-after-goal" | "hide"
   >("show");
+  const [mode, setMode] = useState<"classic" | "endless">("classic");
 
   // Check if vibration API is supported
   useEffect(() => {
@@ -68,6 +69,8 @@ export default function Home() {
     params.set("soundEnabled", soundEnabled.toString());
     // Add show timer setting
     params.set("showTimer", showTimer);
+    // Add mode
+    params.set("mode", mode);
 
     router.push(`/game?${params.toString()}`);
   };
@@ -111,42 +114,77 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-300">
-              Target Time (optional)
+              Mode
             </label>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  type="number"
-                  id="targetMinutes"
-                  value={targetMinutes}
-                  onChange={(e) => setTargetMinutes(e.target.value)}
-                  step="1"
-                  min="0"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Minutes"
-                />
-              </div>
-              <div className="flex-1">
-                <input
-                  type="number"
-                  id="targetSeconds"
-                  value={targetSeconds}
-                  onChange={(e) => setTargetSeconds(e.target.value)}
-                  step="1"
-                  min="0"
-                  max="59"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Seconds"
-                />
-              </div>
+            <div className="flex gap-2 mt-2">
+              {(["classic", "endless"] as const).map((m) => (
+                <label
+                  key={m}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border cursor-pointer transition-colors ${
+                    mode === m
+                      ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                      : "border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="mode"
+                    value={m}
+                    checked={mode === m}
+                    onChange={() => setMode(m)}
+                    className="sr-only"
+                  />
+                  <span className="text-sm font-medium capitalize">{m}</span>
+                </label>
+              ))}
             </div>
             <p className="text-xs text-gray-500">
-              If you have a specific goal time, set it here. Don't worry if you
-              fail, you can always start over!
+              {mode === "endless"
+                ? "No game over — tracks your last, best, and total hold time."
+                : "Classic game with grace period and game over state."}
             </p>
           </div>
+
+          {mode === "classic" && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">
+                Target Time (optional)
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    id="targetMinutes"
+                    value={targetMinutes}
+                    onChange={(e) => setTargetMinutes(e.target.value)}
+                    step="1"
+                    min="0"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Minutes"
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    id="targetSeconds"
+                    value={targetSeconds}
+                    onChange={(e) => setTargetSeconds(e.target.value)}
+                    step="1"
+                    min="0"
+                    max="59"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Seconds"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                If you have a specific goal time, set it here. Don't worry if you
+                fail, you can always start over!
+              </p>
+            </div>
+          )}
 
           {/* Advanced Settings Dropdown */}
           <div className="border border-gray-700 rounded-lg overflow-hidden">
@@ -177,6 +215,7 @@ export default function Home() {
 
             {showAdvancedSettings && (
               <div className="p-4 space-y-4 bg-gray-850">
+                {mode === "classic" && (
                 <div className="space-y-2">
                   <label
                     htmlFor="maximumBreaks"
@@ -199,6 +238,7 @@ export default function Home() {
                     over. Set to 0 for instafail.
                   </p>
                 </div>
+                )}
 
                 {vibrationSupported && (
                   <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
@@ -260,6 +300,7 @@ export default function Home() {
                   </button>
                 </div>
 
+                {mode === "classic" && (
                 <div className="space-y-1 p-4 bg-gray-800 rounded-lg border border-gray-700">
                   <label className="block text-sm font-medium text-gray-300">
                     Timer Visibility
@@ -346,6 +387,7 @@ export default function Home() {
                     </label>
                   </div>
                 </div>
+                )}
               </div>
             )}
           </div>

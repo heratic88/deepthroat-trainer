@@ -5,11 +5,14 @@ export interface Settings {
   hapticFeedback?: boolean;
   soundEnabled?: boolean;
   showTimer?: "show" | "show-after-goal" | "hide";
+  mode?: "classic" | "endless";
 }
 
 export interface Statistics {
   elapsed: number;
   breaks: number;
+  lastHold: number;
+  longestHold: number;
 }
 
 export type Phase = "idle" | "holding" | "released" | "failed";
