@@ -163,16 +163,18 @@ function GameContent() {
     holdingTimerRef.current = holdingTimer;
   }, [holdingTimer]);
 
-  // Wake Lock management
+  // Wake Lock and fullscreen management
   useEffect(() => {
     if (!settings) return;
 
-    // Request wake lock when game starts
     requestWakeLock();
+
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
 
     const handleVisibilityChange = async () => {
       if (!document.hidden && wakeLockRef.current === null) {
-        // Reacquire wake lock when page becomes visible again
         await requestWakeLock();
       }
     };
@@ -182,6 +184,9 @@ function GameContent() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       releaseWakeLock();
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
     };
   }, [settings]);
 
