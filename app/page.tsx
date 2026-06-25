@@ -13,6 +13,7 @@ export default function Home() {
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [hapticFeedback, setHapticFeedback] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [extraCues, setExtraCues] = useState<boolean>(false);
   const [vibrationSupported, setVibrationSupported] = useState<boolean>(false);
   const [showTimer, setShowTimer] = useState<
     "show" | "show-after-goal" | "hide"
@@ -67,6 +68,8 @@ export default function Home() {
     }
     // Add sound setting
     params.set("soundEnabled", soundEnabled.toString());
+    // Add extra cues setting
+    params.set("extraCues", extraCues.toString());
     // Add show timer setting
     params.set("showTimer", showTimer);
     // Add mode
@@ -295,6 +298,35 @@ export default function Home() {
                     <span
                       className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
                         soundEnabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="extraCues"
+                      className="block text-sm font-medium text-gray-300"
+                    >
+                      Extra Cues
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Tick every second, distinct cue every 10 seconds.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={extraCues}
+                    onClick={() => setExtraCues(!extraCues)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                      extraCues ? "bg-blue-600" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                        extraCues ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
                   </button>

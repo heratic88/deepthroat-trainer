@@ -50,10 +50,13 @@ function GameContent() {
       return;
     }
 
+    const extraCues = searchParams.get("extraCues");
+
     const parsedSettings: Settings = {
       gracePeriodSeconds: gracePeriod,
       hapticFeedback: hapticFeedback !== "false",
       soundEnabled: soundEnabled !== "false",
+      extraCues: extraCues === "true",
       showTimer: (showTimer as "show" | "show-after-goal" | "hide") || "show",
       mode: (mode as "classic" | "endless") || "classic",
     };
@@ -280,22 +283,30 @@ function GameContent() {
     currentHoldStartRef.current = holdStart;
     setCurrentHoldSeconds(0);
 
-    if (settings.mode === "endless") {
-      setHoldingTimer(
-        setInterval(() => {
+    let holdSeconds = 0;
+    setHoldingTimer(
+      setInterval(() => {
+        holdSeconds++;
+        if (settings.mode === "endless") {
           setCurrentHoldSeconds((s) => s + 1);
-        }, 1000)
-      );
-    } else {
-      setHoldingTimer(
-        setInterval(() => {
+        } else {
           setStatistics((prev) => ({
             ...prev,
             elapsed: prev.elapsed + 1,
           }));
-        }, 1000)
-      );
-    }
+        }
+        if (settings.extraCues) {
+          if (holdSeconds % 10 === 0) {
+            playTone(880, 0.1);
+            setTimeout(() => playTone(1100, 0.08), 110);
+            vibrate([40, 20, 40]);
+          } else {
+            playTone(660, 0.06);
+            vibrate(15);
+          }
+        }
+      }, 1000)
+    );
   };
 
   const onPointerUp = async (event: React.PointerEvent<HTMLButtonElement>) => {
